@@ -1,26 +1,41 @@
-const hre = require("hardhat");
-const fs = require("fs");
+import hre from "hardhat";
+import fs from "fs/promises";
 
 async function main() {
-  console.log("🚀 Деплой с принудительной загрузкой");
+    const { ethers } = await hre.network.create();
 
-  const uniswapRouter = "0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD";
-  const sushiRouter = "0xeaBcE3E74EF41FB40024a21Cc2ee2F5dDc615791";
-  const wbtc = "0x29f2D40B0605204364af54EC677bD022dA425d03";
-  const usdc = "0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8";
+    console.log("1. Разворачиваем Mock-токен WBTC...");
+    const MockWBTC = await ethers.getContractFactory("MockWBTC");
+    const mockWbtc = await MockWBTC.deploy();
+    await mockWbtc.waitForDeployment();
+    const mockWbtcAddress = mockWbtc.target;
+    console.log(`MockWBTC развернут по адресу: ${mockWbtcAddress}`);
 
-  // ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА по имени файла
-  const MyNewFlashLoan = await hre.ethers.getContractFactory("MyNewFlashLoan");
-  const flashLoan = await MyNewFlashLoan.deploy(uniswapRouter, sushiRouter, wbtc, usdc);
-  await flashLoan.waitForDeployment();
-  const address = await flashLoan.getAddress();
+    // Фейковые адреса-заглушки для остальных параметров конструктора
+    const fakeRouterUniswap = "0xE592427A0AEce92De3Edee1F18E0157C05861564";
+    const fakeRouterSushi = "0xd9e1c1535b7824f337411e226441526c1c1b3242";
+    const fakeUsdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
-  console.log("========================================");
-  console.log("🔥 НОВЫЙ АДРЕС КОНТРАКТА:", address);
-  console.log("========================================");
+    console.log("\n2. Разворачиваем основной контракт MyFinalLoan...");
+    const MyFinalLoan = await ethers.getContractFactory("MyFinalLoan");
+    
+    // Передаем адрес нашего созданного Mock-токена в конструктор!
+    const loanContract = await MyFinalLoan.deploy(
+        fakeRouterUniswap,
+        fakeRouterSushi,
+        mockWbtcAddress,
+        fakeUsdc
+    );
+    await loanContract.waitForDeployment();
+    const loanAddress = loanContract.target;
+    console.log(`MyFinalLoan развернут по адресу: ${loanAddress}`);
 
-  fs.writeFileSync("address.txt", address);
-  console.log("✅ Адрес сохранён в address.txt");
+    // Сохраняем адрес основного контракта в файл
+    await fs.writeFile("address.txt", loanAddress);
+    console.log("Адрес успешно записан в address.txt");
 }
 
-main().catch(console.error);
+main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+});

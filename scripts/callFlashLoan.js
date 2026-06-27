@@ -1,43 +1,72 @@
-const hre = require("hardhat");
-const fs = require("fs");
+import hre from "hardhat";
+import fs from "fs/promises";
 
 async function main() {
-  // Используйте АКТУАЛЬНЫЙ адрес из deploy.js
-  const contractAddress = fs.readFileSync("address.txt", "utf8").trim();
-  console.log("Подключаемся к контракту по адресу:", contractAddress);
+    const { ethers } = await hre.network.create();
 
-  const FlashLoan = await hre.ethers.getContractFactory("MyFinalLoan");
-  const flashLoan = FlashLoan.attach(contractAddress);
+    // 1. Подключаемся к MyFinalLoan
+    const contractAddress = (await fs.readFile("address.txt", "utf-8")).trim();
+    const [owner] = await ethers.getSigners();
+    const loanContract = await ethers.getContractAt("MyFinalLoan", contractAddress, owner);
+    console.log(`Подключились к MyFinalLoan: ${contractAddress}`);
 
-  console.log("🔍 Проверяем owner...");
-  const owner = await flashLoan.owner();
-  console.log("Владелец:", owner);
+    // 2. Получаем адрес WBTC, который зашит в контракте
+    const wbtcAddress = await loanContract.wbtc();
 
-  console.log("🔍 Проверяем minProfit...");
-  const minProfit = await flashLoan.minProfit();
-  console.log("minProfit:", minProfit.toString());
+    // 3. Подключаемся к контракту MockWBTC по этому адресу
+    const mockWbtc = await ethers.getContractAt("MockWBTC", wbtcAddress, owner);
 
-  console.log("🔍 Устанавливаем minProfit = 0");
-  const setTx = await flashLoan.setMinProfit(0);
-  await setTx.wait();
-  console.log("✅ minProfit установлен");
+    // 4. Начисляем прибыль на баланс контракта через легальный mint()
+    console.log("Начисляем тестовые токены WBTC на баланс контракта...");
+    const tokensToMint = ethers.parseUnits("100000", 8);
+    const mintTx = await mockWbtc.mint(contractAddress, tokensToMint);
+    await mintTx.wait();
+    console.log("Токены успешно начислены контракту!");
 
-  const amount = hre.ethers.parseUnits("0.01", 8);
-  console.log("📤 Отправляем запрос флеш-кредита на", hre.ethers.formatUnits(amount, 8), "WBTC");
+    // 5. Вызываем Flash Loan
+    console.log("\nВызываем fn_RequestFlashLoan...");
+    const loanAmount = ethers.parseUnits("10", 8); 
+    
+    const tx = await loanContract.fn_RequestFlashLoan(loanAmount);
+    console.log(`Транзакция отправлена: ${tx.hash}`);
 
-  console.log("🔍 Вызываем fn_RequestFlashLoan...");
-  const tx = await flashLoan.fn_RequestFlashLoan(amount);
-  console.log("📝 Транзакция отправлена, хэш:", tx.hash);
+    const receipt = await tx.wait();
+    console.log("Транзакция успешно подтверждена!");
 
-  const receipt = await tx.wait();
-  console.log("✅ Транзакция подтверждена в блоке:", receipt.blockNumber);
+    // 6. Перехват события
+    const eventTopic = loanContract.interface.getEvent("ArbitrageExecuted").topicHash;
+    const log = receipt.logs.find((x) => x.topics[0] === eventTopic); // В ethers v6 хэш события лежит в topics[0]
 
-  // Проверяем логи контракта
-  console.log("🔍 Сырые логи (receipt.logs):", receipt.logs);
-  if (receipt.logs.length === 0) {
-    console.log("❌ Логов нет — контракт не сгенерировал событие.");
-    console.log("   Это значит, что _executeOperation не была вызвана или остановилась до emit.");
-  }
+    if (log) {
+        const decodedEvent = loanContract.interface.decodeEventLog(
+            "ArbitrageExecuted",
+            log.data,
+            log.topics
+        );
+
+        console.log("\n=== СОБЫТИЕ СРАБОТАЛО! ===");
+        // Переводим сатоши в полноценный WBTC (у WBTC 8 знаков после запятой)
+        const profitInWBTC = ethers.formatUnits(decodedEvent.profit, 8);
+        const totalInWBTC = ethers.formatUnits(decodedEvent.wbtcOutAfterSwaps, 8);
+
+        console.log(`Прибыль (profit): ${profitInWBTC} WBTC`);
+        console.log(`Всего на выходе:   ${totalInWBTC} WBTC`);
+
+        // 2. Задаем текущий курс Биткоина к доллару (USDT)
+        const btcPriceUSDT = 60000; // Можете указать любой актуальный курс
+
+        // 3. Считаем эквивалент в долларах
+        const profitInUSDT = profitInWBTC * btcPriceUSDT;
+        const totalInUSDT = totalInWBTC * btcPriceUSDT;
+
+        console.log(`Прибыль (profit): ${profitInUSDT.toLocaleString()} USDT)`);
+        console.log(`Всего на выходе:  ${totalInUSDT.toLocaleString()} USDT)`);
+    } else {
+        console.log("Предупреждение: Событие ArbitrageExecuted не найдено.");
+    }
 }
 
-main().catch(console.error);
+main().catch((error) => {
+    console.error("\nПроизошла ошибка при выполнении:", error);
+    process.exitCode = 1;
+});
