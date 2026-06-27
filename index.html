@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель Управления Арбитражем</title>
+    <!-- Подключаем внешние стили -->
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <div class="card">
+        <h2>DeFi Arbitrage Bot</h2>
+        <p class="subtitle">Демонстрация Flash Loan (WBTC/USDC)</p>
+        <hr class="divider">
+        
+        <button id="runBtn" onclick="startArbitrage()">Запустить арбитраж</button>
+        
+        <div id="loader" class="loader"></div>
+        <div id="status" class="status">Готов к запуску</div>
+
+        <!-- НОВЫЙ БЛОК: Терминал живых логов -->
+        <div id="terminalBox" class="terminal-box" style="display: none;">
+            <div class="terminal-header">
+                <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                <span class="terminal-title">live_arbitrage_execution_stream.log</span>
+            </div>
+            <div id="logConsole" class="log-console"></div>
+        </div>
+
+        <div id="resultBox" class="result-box">
+            <h3 class="result-title">Результаты симуляции:</h3>
+            <p>💰 Прибыль: <span id="profitRes" class="profit">0</span> USDT</p>
+            <p>📊 Всего на выходе: <span id="totalRes">0</span> USDT</p>
+            <p class="hash-text">Hash: <span id="hashRes"></span></p>
+        </div>
+    </div>
+
+    <!-- Подключаем внешний скрипт -->
+    <script src="/js/app.js"></script>
+</body>
+</html>
