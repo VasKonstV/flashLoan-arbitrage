@@ -37,8 +37,7 @@ contract MyFinalLoan {
     function fn_RequestFlashLoan(uint256 _amountWBTC) external onlyOwner {
         console.log("fn_RequestFlashLoan called, amount:", _amountWBTC);
         uint256 fee = _amountWBTC * 5 / 10000;
-        // �������� �������� ��� this
-        _executeOperation(wbtc, _amountWBTC, fee);
+       _executeOperation(wbtc, _amountWBTC, fee);
     }
 
     function _executeOperation(
