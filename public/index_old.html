@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEV FlashLoan Arbitrage Engine</title>
+    <script src="https://cloudflare.com"></script>
+    <style>
+        body { background-color: #0b0f19; color: #fff; font-family: monospace; padding: 40px; margin: 0; }
+        h1 { color: #38bdf8; text-align: center; margin-bottom: 30px; font-size: 28px; }
+        .btn-container { text-align: center; margin-bottom: 40px; }
+        button { background-color: #0284c7; color: #fff; padding: 15px 40px; font-size: 18px; border: none; border-radius: 8px; cursor: pointer; font-family: monospace; box-shadow: 0 0 15px rgba(2, 132, 199, 0.5); transition: 0.2s; }
+        button:hover { background-color: #0369a1; }
+        button:disabled { background-color: #475569; cursor: not-allowed; box-shadow: none; }
+        .terminal { max-width: 900px; margin: 0 auto; background-color: #020617; border: 1px solid #1e293b; border-radius: 12px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
+        .window-buttons { display: flex; gap: 6px; margin-bottom: 15px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot.red { background-color: #ef4444; }
+        .dot.yellow { background-color: #eab308; }
+        .dot.green { background-color: #22c55e; }
+        .terminal-title { color: #475569; margin-left: 10px; font-size: 12px; }
+        .output { min-height: 280px; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
+        .log { display: flex; gap: 10px; }
+        .time { color: #334155; }
+        .info { color: #94a3b8; }
+        .success { color: #4ade80; }
+        .warning { color: #facc15; }
+        .profit-log { color: #a855f7; font-weight: bold; font-size: 17px; }
+        .revenue-card { margin-top: 30px; text-align: center; display: none; }
+        .card-body { display: inline-block; background-color: rgba(168, 85, 247, 0.1); border: 2px solid #a855f7; padding: 20px 50px; border-radius: 12px; }
+        .card-body h3 { margin: 0; color: #c084fc; font-size: 14px; }
+        .card-body p { fontSize: 32px; font-weight: bold; margin: 10px 0 0 0; color: #a855f7; font-size: 32px; }
+    </style>
+</head>
+<body>
+
+    <h1>⚡ MEV FlashLoan Arbitrage Engine ⚡</h1>
+    
+    <div class="btn-container">
+        <button id="runBtn" onclick="startFlashLoan()">RUN FLASH LOAN ATTACK</button>
+    </div>
+
+    <div class="terminal">
+        <div class="window-buttons">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+            <span class="terminal-title">live_arbitrage_execution_stream.log</span>
+        </div>
+        <div class="output" id="terminalOutput">
+            <div class="log info"><span class="time"></span> Terminal idle. Awaiting flash loan execution request...</div>
+        </div>
+    </div>
+
+    <div class="revenue-card" id="revenueCard">
+        <div class="card-body">
+            <h3>TOTAL ESTIMATED REVENUE</h3>
+            <p id="revenueValue">+$0.00 USDT</p>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
